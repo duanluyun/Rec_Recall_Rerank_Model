@@ -2,9 +2,45 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Flatten, Concatenate
 from DLFeatureFactory.Features import  FeatureEncoder
 from Layer.cores import  DNN,CosinSimilarity,PredictLayer
+import tensorflow as tf
+
+class NoMask(tf.keras.layers.Layer):
+    def __init__(self, **kwargs):
+        super(NoMask, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        # Be sure to call this somewhere!
+        super(NoMask, self).build(input_shape)
+
+    def call(self, x, mask=None, **kwargs):
+        return x
+
+    def compute_mask(self, inputs, mask):
+        return None
+
+def concat_func(inputs, axis=-1, mask=False):
+    if not mask:
+        inputs = list(map(NoMask(), inputs))
+    if len(inputs) == 1:
+        return inputs[0]
+    else:
+        return tf.keras.layers.Concatenate(axis=axis)(inputs)
 
 
-def process_feature(user_feature_columns, item_feature_columns, feature_encode):
+def combined_dnn_input(sparse_embedding_list, dense_value_list):
+    if len(sparse_embedding_list) > 0 and len(dense_value_list) > 0:
+        sparse_dnn_input = Flatten()(concat_func(sparse_embedding_list))
+        dense_dnn_input = Flatten()(concat_func(dense_value_list))
+        return concat_func([sparse_dnn_input, dense_dnn_input])
+    elif len(sparse_embedding_list) > 0:
+        return Flatten()(concat_func(sparse_embedding_list))
+    elif len(dense_value_list) > 0:
+        return Flatten()(concat_func(dense_value_list))
+    else:
+        raise NotImplementedError("dnn_feature_columns can not be empty list")
+
+
+def process_feature(feature_columns, feature_encode):
     """
     根据FeatureEncoder获取所有输入的Input层或者Embedding层，然后根据自己
     实际场景的业务数据，对不同的特征进行处理.
@@ -19,37 +55,29 @@ def process_feature(user_feature_columns, item_feature_columns, feature_encode):
     item_feature_columns = [SparseFeat('movie_id', feature_max_index_dict['movie_id'], embedding_dim=4)]
     """
     group_embedding_dict = feature_encode.sparse_feature_dict
+    dense_feature_dict = feature_encode.dense_feature_dict
 
-    user_emb_name = [fc.embedding_name for fc in user_feature_columns]
-    item_emb_name = [fc.embedding_name for fc in item_feature_columns]
+    feature_names=[fc.name for fc in feature_columns]
 
-    user_dnn_input = [v for k, v in group_embedding_dict['default_group'].items()
-        if k in user_emb_name]
-    item_dnn_input = [v for k, v in group_embedding_dict['default_group'].items()
-        if k in item_emb_name]
+    sparse_dnn_input = [v for k, v in group_embedding_dict['default_group'].items() if k in feature_names]
+    dense_dnn_input = [v for k, v in dense_feature_dict.items() if k in feature_names]
 
-    return user_dnn_input, item_dnn_input
+    return sparse_dnn_input, dense_dnn_input
 
 
-def DSSM(user_feature_columns, item_feature_columns, dnn_units=[64, 32],
-        temp=10, task='binary'):
+def DSSM(user_feature_columns, item_feature_columns, dnn_units=[64, 32],temp=10, task='binary'):
     # 构建所有特征的Input层和Embedding层
     feature_encode = FeatureEncoder(user_feature_columns + item_feature_columns)
     feature_input_layers_list = list(feature_encode.feature_input_layer_dict.values())
 
     # 特征处理
-    user_dnn_input, item_dnn_input = process_feature(user_feature_columns,\
-        item_feature_columns, feature_encode)
+    user_sparse_dnn_input, user_dense_dnn_input = process_feature(user_feature_columns, feature_encode)
+    user_dnn_input=combined_dnn_input(user_sparse_dnn_input,user_dense_dnn_input)
 
-    # 构建模型的核心层
-    if len(user_dnn_input) >= 2:
-        user_dnn_input = Concatenate(axis=1)(user_dnn_input)
-    else:
-        user_dnn_input = user_dnn_input[0]
-    if len(item_dnn_input) >= 2:
-        item_dnn_input = Concatenate(axis=1)(item_dnn_input)
-    else:
-        item_dnn_input = item_dnn_input[0]
+    item_sparse_dnn_input, item_dense_dnn_input = process_feature(item_feature_columns, feature_encode)
+    item_dnn_input = combined_dnn_input(item_sparse_dnn_input, item_dense_dnn_input)
+
+
 
     user_dnn_input = Flatten()(user_dnn_input)
     item_dnn_input = Flatten()(item_dnn_input)

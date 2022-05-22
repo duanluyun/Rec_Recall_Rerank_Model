@@ -6,7 +6,7 @@ from tensorflow.keras.initializers import RandomNormal
 DEFAULT_GROUP_NAME="default_group"
 
 BaseDenseFeat = namedtuple('DenseFeat',
-                            ['name', 'dimension', 'dtype', 'transform_fn'])
+                            ['name', 'dimension', 'dtype'])
 
 BaseSparseFeat = namedtuple('SparseFeat',
                             ['name', 'vocabulary_size', 'embedding_dim',
@@ -18,14 +18,32 @@ BaseVarLenSparseFeat = namedtuple('VarLenSparseFeat',
                                   ['sparsefeat', 'maxlen', 'combiner',
                                   'length_name', 'weight_name', 'weight_norm'])
 
-class DenseFeat(BaseDenseFeat):
-    # 加上__slots__ = ()限制，在生成实例的时候，不会为实例生成一个属性字典，
-    # 可以节省内存
+class DenseFeat(namedtuple('DenseFeat', ['name', 'dimension', 'dtype', 'transform_fn'])):
+    """ Dense feature
+    Args:
+        name: feature name,
+        dimension: dimension of the feature, default = 1.
+        dtype: dtype of the feature, default="float32".
+        transform_fn: If not `None` , a function that can be used to transform
+        values of the feature.  the function takes the input Tensor as its
+        argument, and returns the output Tensor.
+        (e.g. lambda x: (x - 3.0) / 4.2).
+    """
     __slots__ = ()
-    def __new__(self,name,dimension=1,dtype=tf.float32,transfrom_fn=None):
-        return super(DenseFeat,self).__new__(name,dimension,dtype,transfrom_fn)
+
+    def __new__(cls, name, dimension=1, dtype="float32", transform_fn=None):
+        return super(DenseFeat, cls).__new__(cls, name, dimension, dtype, transform_fn)
+
     def __hash__(self):
         return self.name.__hash__()
+
+    # def __eq__(self, other):
+    #     if self.name == other.name:
+    #         return True
+    #     return False
+
+    # def __repr__(self):
+    #     return 'DenseFeat:'+self.name
 
 
 

@@ -4,7 +4,7 @@ from itertools import chain
 import pandas as pd
 from collections import OrderedDict, defaultdict
 import tensorflow as tf
-from .featureColumes import DenseFeat, SparseFeat, VarLenSparseFeat
+from DLFeatureFactory.featureColumes import DenseFeat, SparseFeat, VarLenSparseFeat
 from tensorflow.keras.layers import Input, Embedding, Flatten, Concatenate, Dense
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.initializers import Zeros
@@ -50,7 +50,7 @@ class FeatureMap(object):
         for fc in self.feature_columns:
             if isinstance(fc, DenseFeat):
                 feature_input_layer_dict[fc.name] = Input(shape=(fc.dimension,),
-                                                          name=fc.name, dtype=fc.type)
+                                                          name=fc.name, dtype=fc.dtype)
             elif isinstance(fc, SparseFeat):
                 feature_input_layer_dict[fc.name] = Input(shape=(1,),
                                                           name=fc.name, dtype=fc.dtype)
@@ -110,8 +110,7 @@ class FeatureEncoder(object):
             )
 
         # 处理三类不同的特征
-        self.dense_feature_dict, self.sparse_feature_dict, \
-        self.varlen_sparse_feature_dict = self.encode_to_dict()
+        self.dense_feature_dict, self.sparse_feature_dict, self.varlen_sparse_feature_dict = self.encode_to_dict()
 
     def _filter_feature_columns(self):
         """过滤不同的特征
@@ -234,7 +233,7 @@ class FeatureEncoder(object):
         if len(embedding_layers_dict) > 0:
             if len(self.sparse_feature_columns) > 0:
                 sparse_feature_dict = self.embedding_look_up(
-                    self.feature_column_list, embedding_layers_dict,
+                    self.sparse_feature_columns, embedding_layers_dict,
                     is_varlen=False)
 
             if len(self.varlen_sparse_feature_columns) > 0:
