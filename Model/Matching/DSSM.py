@@ -1,5 +1,5 @@
 from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Flatten, Concatenate
+from tensorflow.keras.layers import Flatten
 from DLFeatureFactory.Features import  FeatureEncoder
 from Layer.cores import  DNN,CosinSimilarity,PredictLayer
 import tensorflow as tf
@@ -41,19 +41,7 @@ def combined_dnn_input(sparse_embedding_list, dense_value_list):
 
 
 def process_feature(feature_columns, feature_encode):
-    """
-    根据FeatureEncoder获取所有输入的Input层或者Embedding层，然后根据自己
-    实际场景的业务数据，对不同的特征进行处理.
-    user_feature_columns = [
-        SparseFeat('user_id', feature_max_index_dict['user_id'], embedding_dim=4),
-        SparseFeat('gender', feature_max_index_dict['gender'], embedding_dim=4),
-        SparseFeat('occupation', feature_max_index_dict['occupation'], embedding_dim=4),
-        SparseFeat('zip', feature_max_index_dict['zip'], embedding_dim=4),
-        VarLenSparseFeat(SparseFeat('hist_movie_id', feature_max_idx['movie_id'], embedding_dim,
-                            embedding_name="movie_id"), SEQ_LEN, 'mean', 'hist_len'),
-    ]
-    item_feature_columns = [SparseFeat('movie_id', feature_max_index_dict['movie_id'], embedding_dim=4)]
-    """
+
     group_embedding_dict = feature_encode.sparse_feature_dict
     dense_feature_dict = feature_encode.dense_feature_dict
 
