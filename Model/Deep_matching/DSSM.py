@@ -55,14 +55,18 @@ def process_feature(feature_columns, feature_encode):
 
 def DSSM(user_feature_columns, item_feature_columns, dnn_units=[64, 32],temp=10, task='binary'):
     # 构建所有特征的Input层和Embedding层
-    feature_encode = FeatureEncoder(user_feature_columns + item_feature_columns)
-    feature_input_layers_list = list(feature_encode.feature_input_layer_dict.values())
+    user_feature_encode = FeatureEncoder(user_feature_columns )
+    user_feature_input_layers_list = list(user_feature_encode.feature_input_layer_dict.values())
 
+    item_feature_encode = FeatureEncoder( item_feature_columns)
+    item_feature_input_layers_list = list(item_feature_encode.feature_input_layer_dict.values())
+
+    feature_input_layers_list=user_feature_input_layers_list+item_feature_input_layers_list
     # 特征处理
-    user_sparse_dnn_input, user_dense_dnn_input = process_feature(user_feature_columns, feature_encode)
+    user_sparse_dnn_input, user_dense_dnn_input = process_feature(user_feature_columns, user_feature_encode)
     user_dnn_input=combined_dnn_input(user_sparse_dnn_input,user_dense_dnn_input)
 
-    item_sparse_dnn_input, item_dense_dnn_input = process_feature(item_feature_columns, feature_encode)
+    item_sparse_dnn_input, item_dense_dnn_input = process_feature(item_feature_columns, item_feature_encode)
     item_dnn_input = combined_dnn_input(item_sparse_dnn_input, item_dense_dnn_input)
 
 
@@ -82,5 +86,10 @@ def DSSM(user_feature_columns, item_feature_columns, dnn_units=[64, 32],temp=10,
     # 根据输入输出构建模型
     model = Model(feature_input_layers_list, output)
     # model.summary()
+
+    model.__setattr__('user_input',user_feature_input_layers_list)
+    model.__setattr__('item_input',item_feature_input_layers_list)
+    model.__setattr__('user_embedding',user_dnn_out)
+    model.__setattr__('item_embedding',item_dnn_out)
 
     return model

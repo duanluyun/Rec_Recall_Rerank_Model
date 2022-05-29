@@ -1,6 +1,5 @@
 import tensorflow as tf
-from tensorflow.keras.layers import Layer, Dense, Activation, Dropout, \
-    BatchNormalization
+from tensorflow.keras.layers import Layer, Dense, Activation, Dropout, BatchNormalization
 from tensorflow.keras.initializers import Zeros
 
 
@@ -126,4 +125,36 @@ class PredictLayer(Layer):
     def get_config(self, ):
         config = {'task': self.task, 'use_bias': self.use_bias}
         base_config = super(PredictLayer, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
+class Similarity(Layer):
+
+    def __init__(self, gamma=1, axis=-1, type='cos', **kwargs):
+        self.gamma = gamma
+        self.axis = axis
+        self.type = type
+        super(Similarity, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        # Be sure to call this somewhere!
+        super(Similarity, self).build(input_shape)
+
+    def call(self, inputs, **kwargs):
+        query, candidate = inputs
+        if self.type == "cos":
+            query_norm = tf.norm(query, axis=self.axis)
+            candidate_norm = tf.norm(candidate, axis=self.axis)
+        cosine_score = tf.reduce_sum(tf.multiply(query, candidate), -1)
+        if self.type == "cos":
+            cosine_score = tf.divide(cosine_score, query_norm * candidate_norm + 1e-8)
+        # cosine_score = tf.clip_by_value(tf.cast(cosine_score,tf.float32), -1, 1.0) * self.gamma
+        return cosine_score
+
+    def compute_output_shape(self, input_shape):
+        return (None, 1)
+
+    def get_config(self, ):
+        config = {'gamma': self.gamma, 'axis': self.axis, 'type': self.type}
+        base_config = super(Similarity, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))

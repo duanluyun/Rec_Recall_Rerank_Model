@@ -3,9 +3,11 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from DLFeatureFactory.featureColumes import DenseFeat, SparseFeat, VarLenSparseFeat
-from Model.Matching.dssm import  DSSM
+from Model.Deep_matching.DSSM import  DSSM
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.models import Model
+import faiss
 
 
 
@@ -114,4 +116,28 @@ if __name__ == "__main__":
 
     model.fit(train_data_dict, train_label, batch_size=20, epochs=50, verbose=1, validation_split=0.1, )
     #
-    #
+    user_embedding_model = Model(inputs=model.user_input, outputs=model.user_embedding)
+    item_embedding_model = Model(inputs=model.item_input, outputs=model.item_embedding)
+
+    train_user_model_input = [train_data_dict[fc.name] for fc in user_feature_columns]
+    train_item_model_input = [train_data_dict[fc.name] for fc in item_feature_columns]
+
+    user_embs = user_embedding_model.predict(train_user_model_input, batch_size=2 ** 12)
+    item_embs = item_embedding_model.predict(train_item_model_input, batch_size=2 ** 12)
+
+    index = faiss.IndexFlatL2(len(user_embs[0]))
+    index.add(item_embs)
+
+
+    distance,index_list=index.search(user_embs,k=3)
+
+    print(index_list[0])
+    print(item_embs[index_list[0]])
+    print(user_embs[0])
+    print(distance[0])
+
+
+
+
+
+

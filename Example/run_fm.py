@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from DLFeatureFactory.featureColumes import DenseFeat, SparseFeat
-from Model.Matching.FM import  FM
+from Model.Deep_matching.FM import  FM
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.python.keras.models import Model
@@ -96,11 +96,6 @@ if __name__ == "__main__":
     data_path=r'../data/movielens(ml-1m).txt'
 
     feature_max_index_dict, train_data_dict, test_data_dict = process_data(data_path)
-
-
-
-
-
     train_label = train_data_dict['label']
     print(train_data_dict.keys())
     train_data_dict.pop("label")
